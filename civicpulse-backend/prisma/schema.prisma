@@ -17,6 +17,7 @@ enum Role {
 
 enum IssueStatus {
   REPORTED
+  ASSIGNED
   IN_PROGRESS
   RESOLVED
   REJECTED
@@ -32,33 +33,35 @@ enum IssueCategory {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String
-  role      Role     @default(CITIZEN)
-  
+  id       String @id @default(uuid())
+  email    String @unique
+  name     String
+  password String
+  role     Role   @default(CITIZEN)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  issues    Issue[]  @relation("ReportedIssues")
-  
+
+  issues  Issue[]      @relation("ReportedIssues")
+  upvotes Upvote[]
+  audits  IssueAudit[]
+
   assignedWardId String?
   assignedWard   Ward?   @relation("OfficerWard", fields: [assignedWardId], references: [id])
 }
 
 model Ward {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  city        String   @default("Default City")
-  
-  boundary    Unsupported("geometry(Polygon, 4326)")?
+  id   String @id @default(uuid())
+  name String @unique
+  city String @default("Default City")
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  boundary Unsupported("geometry(Polygon, 4326)")?
 
-  officers    User[]   @relation("OfficerWard")
-  issues      Issue[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  officers User[]  @relation("OfficerWard")
+  issues   Issue[]
 }
 
 model Issue {
@@ -67,22 +70,52 @@ model Issue {
   description String        @db.Text
   category    IssueCategory
   status      IssueStatus   @default(REPORTED)
-  
-  imageUrls   String[]
 
-  aiSummary   String?       @db.Text
+  isAnonymous      Boolean @default(false)
+  severityScore    Int?
+  internalNotes    String? @db.Text
+  resolutionRating Int?
 
-  location    Unsupported("geometry(Point, 4326)")?
-  
-  latitude    Float
-  longitude   Float
+  imageUrls String[]
 
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  aiSummary String? @db.Text
 
-  reporterId  String
-  reporter    User          @relation("ReportedIssues", fields: [reporterId], references: [id])
-  
-  wardId      String?
-  ward        Ward?         @relation(fields: [wardId], references: [id])
+  location Unsupported("geometry(Point, 4326)")?
+
+  latitude  Float
+  longitude Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reporterId String
+  reporter   User   @relation("ReportedIssues", fields: [reporterId], references: [id])
+
+  wardId String?
+  ward   Ward?   @relation(fields: [wardId], references: [id])
+
+  upvotes Upvote[]
+  audits  IssueAudit[]
+}
+
+model Upvote {
+  id      String @id @default(uuid())
+  userId  String
+  issueId String
+  user    User   @relation(fields: [userId], references: [id])
+  issue   Issue  @relation(fields: [issueId], references: [id])
+
+  @@unique([userId, issueId])
+}
+
+model IssueAudit {
+  id             String       @id @default(uuid())
+  issueId        String
+  changedById    String
+  previousStatus IssueStatus?
+  newStatus      IssueStatus
+  timestamp      DateTime     @default(now())
+
+  issue     Issue @relation(fields: [issueId], references: [id])
+  changedBy User  @relation(fields: [changedById], references: [id])
 }

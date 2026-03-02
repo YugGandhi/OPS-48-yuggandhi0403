@@ -9,4 +9,5 @@ router.use(authMiddleware_1.protect);
 router.use((0, roleMiddleware_1.authorizeRoles)('OFFICER', 'ADMIN')); // Admins can also do officer things
 router.get('/ward/issues', officerController_1.getWardIssues);
 router.patch('/issues/:id/status', officerController_1.updateIssueStatus);
+router.post('/issues/bulk-status', officerController_1.bulkUpdateStatus);
 exports.default = router;
