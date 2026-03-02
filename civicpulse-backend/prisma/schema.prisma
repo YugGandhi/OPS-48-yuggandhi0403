@@ -1,0 +1,88 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+enum Role {
+  CITIZEN
+  OFFICER
+  ADMIN
+}
+
+enum IssueStatus {
+  REPORTED
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+enum IssueCategory {
+  GARBAGE
+  WATER
+  ROADS
+  LIGHTING
+  INFRASTRUCTURE
+  OTHER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(CITIZEN)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  issues    Issue[]  @relation("ReportedIssues")
+  
+  assignedWardId String?
+  assignedWard   Ward?   @relation("OfficerWard", fields: [assignedWardId], references: [id])
+}
+
+model Ward {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  city        String   @default("Default City")
+  
+  boundary    Unsupported("geometry(Polygon, 4326)")?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  officers    User[]   @relation("OfficerWard")
+  issues      Issue[]
+}
+
+model Issue {
+  id          String        @id @default(uuid())
+  title       String
+  description String        @db.Text
+  category    IssueCategory
+  status      IssueStatus   @default(REPORTED)
+  
+  imageUrls   String[]
+
+  aiSummary   String?       @db.Text
+
+  location    Unsupported("geometry(Point, 4326)")?
+  
+  latitude    Float
+  longitude   Float
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  reporterId  String
+  reporter    User          @relation("ReportedIssues", fields: [reporterId], references: [id])
+  
+  wardId      String?
+  ward        Ward?         @relation(fields: [wardId], references: [id])
+}
