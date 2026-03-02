@@ -5,6 +5,8 @@ const prisma = new PrismaClient();
 
 async function main() {
     console.log('Clearing old data...');
+    await prisma.issueAudit.deleteMany({});
+    await prisma.upvote.deleteMany({});
     await prisma.issue.deleteMany({});
     await prisma.user.deleteMany({});
     await prisma.ward.deleteMany({});
